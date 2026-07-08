@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VRIO / VRIN Dashboard — HR Resources</title>
+<style>
+  :root{
+    --ink:#1f2a44;
+    --paper:#fafaf7;
+    --card:#ffffff;
+    --accent:#3d6b5e;
+    --accent-soft:#e7eee9;
+    --line:#d9d9d2;
+    --muted:#6b7280;
+    --no:#b0503c;
+    --no-soft:#f5e6e2;
+    --warn:#a07a2d;
+    --warn-soft:#f5eddb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    background:var(--paper);color:var(--ink);
+    line-height:1.5;padding:28px 16px 80px;
+  }
+  .wrap{max-width:1040px;margin:0 auto;}
+  header{margin-bottom:26px;}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;}
+  h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(26px,4vw,38px);font-weight:700;margin:4px 0 6px;}
+  .sub{color:var(--muted);max-width:640px;font-size:15px;}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:22px 0 18px;}
+  .mode{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden;background:#fff;}
+  .mode button{
+    border:0;background:transparent;padding:9px 20px;font-size:14px;font-weight:700;
+    cursor:pointer;color:var(--ink);letter-spacing:.03em;
+  }
+  .mode button.active{background:var(--ink);color:#fff;}
+  .mode button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;}
+  .spacer{flex:1;}
+  .btn{
+    border:1.5px solid var(--ink);background:#fff;color:var(--ink);border-radius:8px;
+    padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;
+  }
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn:hover{filter:brightness(.96);}
+  .btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+  label.f{display:block;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+  input[type=text],textarea{
+    width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;
+    padding:9px 11px;font:inherit;font-size:14.5px;color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:56px;}
+  input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
+
+  /* resource card */
+  .res{position:relative;}
+  .res-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .res-num{
+    font-family:Georgia,serif;font-size:15px;font-weight:700;color:var(--accent);
+    letter-spacing:.06em;text-transform:uppercase;
+  }
+  .res-head input{flex:1;min-width:220px;font-weight:600;}
+  .remove{
+    border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px;text-decoration:underline;
+  }
+  .remove:hover{color:var(--no);}
+
+  /* the gate chain — signature element */
+  .gate{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:16px;}
+  .gate .step{position:relative;padding:0 10px 0 0;}
+  .gate .step + .step{padding-left:10px;}
+  .gate .step:not(:last-child)::after{
+    content:"";position:absolute;right:-7px;top:22px;width:14px;height:14px;z-index:2;
+    border-top:2px solid var(--line);border-right:2px solid var(--line);
+    transform:rotate(45deg);background:transparent;
+  }
+  .step-box{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px 12px;background:#fff;transition:border-color .15s, background .15s;}
+  .step-box.pass{border-color:var(--accent);background:var(--accent-soft);}
+  .step-box.fail{border-color:var(--no);background:var(--no-soft);}
+  .step-box.dim{opacity:.45;}
+  .step-title{font-size:13px;font-weight:800;letter-spacing:.04em;margin-bottom:2px;}
+  .step-q{font-size:12px;color:var(--muted);margin-bottom:8px;min-height:32px;}
+  .yn{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;}
+  .yn button{border:0;background:#fff;padding:5px 14px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);}
+  .yn button.y.on{background:var(--accent);color:#fff;}
+  .yn button.n.on{background:var(--no);color:#fff;}
+  .yn button:focus-visible{outline:2px solid var(--ink);outline-offset:-2px;}
+  .step textarea{margin-top:8px;font-size:13px;min-height:64px;}
+
+  .verdict{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    border-radius:10px;padding:10px 14px;font-size:14.5px;font-weight:700;
+    background:var(--accent-soft);border:1px dashed var(--line);
+  }
+  .verdict .tag{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  .verdict.v-dis{background:var(--no-soft);color:var(--no);}
+  .verdict.v-par{background:#eee;color:var(--muted);}
+  .verdict.v-tmp{background:var(--warn-soft);color:var(--warn);}
+  .verdict.v-unu{background:var(--warn-soft);color:var(--warn);}
+  .verdict.v-sus{background:var(--accent-soft);color:var(--accent);}
+  .verdict.v-none{color:var(--muted);font-weight:500;}
+
+  .add-wrap{text-align:center;margin:6px 0 24px;}
+
+  /* summary */
+  .summary h2, .synth h2{font-family:Georgia,serif;font-size:20px;margin-bottom:12px;}
+  .sum-table{width:100%;border-collapse:collapse;font-size:14px;}
+  .sum-table th,.sum-table td{border:1px solid var(--line);padding:8px 10px;text-align:left;}
+  .sum-table th{background:var(--accent-soft);font-size:12px;letter-spacing:.05em;text-transform:uppercase;}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;}
+  .p-sus{background:var(--accent-soft);color:var(--accent);}
+  .p-tmp,.p-unu{background:var(--warn-soft);color:var(--warn);}
+  .p-par{background:#eee;color:var(--muted);}
+  .p-dis{background:var(--no-soft);color:var(--no);}
+  .p-none{background:#eee;color:var(--muted);font-weight:500;}
+  .yesno-mini{font-weight:700;}
+  .yesno-mini.y{color:var(--accent);} .yesno-mini.n{color:var(--no);}
+
+  footer{margin-top:26px;font-size:12.5px;color:var(--muted);}
+
+  @media print{
+    body{background:#fff;padding:0;}
+    .toolbar,.add-wrap,.remove,footer .noprint{display:none!important;}
+    .panel{break-inside:avoid;border-color:#bbb;}
+    textarea,input[type=text]{border:none;border-bottom:1px solid #ccc;border-radius:0;padding-left:0;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Strategic HR · Resource-Based View</div>
+    <h1>VRIO Dashboard — HR Resources of Your Brand</h1>
+    <p class="sub">Test whether your brand's <strong>people-based</strong> resources — talent, culture, training systems, employer brand, leadership — can deliver sustained competitive advantage. Answer each gate in order; the verdict updates as you go.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="mode" role="group" aria-label="Framework mode">
+      <button id="mVRIO" class="active" onclick="setMode('VRIO')">VRIO</button>
+      <button id="mVRIN" onclick="setMode('VRIN')">VRIN</button>
+    </div>
+    <span style="font-size:13px;color:var(--muted);" id="modeHint">O = Organized to exploit (Barney 1995)</span>
+    <div class="spacer"></div>
+    <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+    <button class="btn primary" onclick="addResource()">+ Add HR resource</button>
+  </div>
+
+  <div class="panel">
+    <div class="grid2">
+      <div><label class="f" for="brand">Brand under analysis</label><input type="text" id="brand" placeholder="e.g., Infosys, Zomato, Southwest Airlines" oninput="renderSummary()"></div>
+      <div><label class="f" for="group">Group members</label><input type="text" id="group" placeholder="Names / roll numbers"></div>
+    </div>
+  </div>
+
+  <div id="resources"></div>
+
+  <div class="add-wrap"><button class="btn" onclick="addResource()">+ Add another HR resource</button></div>
+
+  <div class="panel summary">
+    <h2>Summary scoreboard</h2>
+    <div style="overflow-x:auto;"><table class="sum-table" id="sumTable"></table></div>
+  </div>
+
+  <div class="panel synth">
+    <h2>Synthesis</h2>
+    <label class="f" for="synth">Which single HR capability is this brand's strongest source of sustained advantage — and what should HR do to protect and strengthen it?</label>
+    <textarea id="synth" rows="4" placeholder="Your group's answer…"></textarea>
+  </div>
+
+  <footer>
+    Reminder: resources must be <strong>people-based</strong>. If it could exist with zero employees (a patent, a logo, cash reserves), it doesn't belong here.
+    <span class="noprint"> Your entries live only on this page — use <strong>Print / Save as PDF</strong> before closing to keep a copy.</span>
+  </footer>
+</div>
+
+<script>
+let mode = 'VRIO';
+let resources = [];
+let uid = 0;
+
+const STEPS = {
+  VRIO: [
+    {k:'V', title:'Valuable', q:'Helps exploit opportunities or neutralize threats?'},
+    {k:'R', title:'Rare', q:'Do few or no competitors have it?'},
+    {k:'I', title:'Inimitable', q:'Costly or slow for rivals to copy?'},
+    {k:'O', title:'Organized', q:'HR systems aligned to exploit it (pay, structure, careers)?'}
+  ],
+  VRIN: [
+    {k:'V', title:'Valuable', q:'Helps exploit opportunities or neutralize threats?'},
+    {k:'R', title:'Rare', q:'Do few or no competitors have it?'},
+    {k:'I', title:'Inimitable', q:'Costly or slow for rivals to copy?'},
+    {k:'N', title:'Non-substitutable', q:'No different resource can deliver the same benefit?'}
+  ]
+};
+
+function newResource(){
+  return {id:++uid, name:'', ans:{V:null,R:null,I:null,O:null,N:null}, why:{V:'',R:'',I:'',O:'',N:''}};
+}
+
+function addResource(){
+  resources.push(newResource());
+  renderResources();
+}
+function removeResource(id){
+  resources = resources.filter(r=>r.id!==id);
+  renderResources();
+}
+
+function verdict(r){
+  const last = mode==='VRIO' ? 'O' : 'N';
+  const a = r.ans;
+  if(a.V===null) return {cls:'v-none', text:'Answer the gates to see the verdict', pill:'p-none', short:'—'};
+  if(a.V==='n') return {cls:'v-dis', text:'Competitive disadvantage — the resource does not add value', pill:'p-dis', short:'Disadvantage'};
+  if(a.R===null) return {cls:'v-none', text:'Keep going — answer Rare?', pill:'p-none', short:'—'};
+  if(a.R==='n') return {cls:'v-par', text:'Competitive parity — valuable, but everyone has it', pill:'p-par', short:'Parity'};
+  if(a.I===null) return {cls:'v-none', text:'Keep going — answer Inimitable?', pill:'p-none', short:'—'};
+  if(a.I==='n') return {cls:'v-tmp', text:'Temporary advantage — rivals will copy it', pill:'p-tmp', short:'Temporary advantage'};
+  if(a[last]===null) return {cls:'v-none', text:'One gate left…', pill:'p-none', short:'—'};
+  if(a[last]==='n'){
+    return mode==='VRIO'
+      ? {cls:'v-unu', text:'Unused advantage — great resource, but the firm is not organized to exploit it', pill:'p-unu', short:'Unused advantage'}
+      : {cls:'v-tmp', text:'Temporary advantage — a substitute resource can deliver the same benefit', pill:'p-tmp', short:'Temporary advantage'};
+  }
+  return {cls:'v-sus', text:'Sustained competitive advantage — all four gates passed', pill:'p-sus', short:'Sustained advantage'};
+}
+
+function stepState(r, idx){
+  const keys = STEPS[mode].map(s=>s.k);
+  const k = keys[idx];
+  // dim if an earlier gate failed or is unanswered
+  for(let i=0;i<idx;i++){
+    const prev = r.ans[keys[i]];
+    if(prev==='n' || prev===null) return {dim:true, k};
+  }
+  return {dim:false, k};
+}
+
+function renderResources(){
+  const host = document.getElementById('resources');
+  host.innerHTML = '';
+  resources.forEach((r, ri)=>{
+    const card = document.createElement('div');
+    card.className = 'panel res';
+    const v = verdict(r);
+    let stepsHtml = '';
+    STEPS[mode].forEach((s, si)=>{
+      const st = stepState(r, si);
+      const a = r.ans[s.k];
+      const boxCls = a==='y' ? 'pass' : a==='n' ? 'fail' : '';
+      stepsHtml += `
+        <div class="step">
+          <div class="step-box ${boxCls} ${st.dim?'dim':''}">
+            <div class="step-title">${s.k} — ${s.title}</div>
+            <div class="step-q">${s.q}</div>
+            <div class="yn" role="group" aria-label="${s.title} yes or no">
+              <button class="y ${a==='y'?'on':''}" onclick="setAns(${r.id},'${s.k}','y')">Yes</button>
+              <button class="n ${a==='n'?'on':''}" onclick="setAns(${r.id},'${s.k}','n')">No</button>
+            </div>
+          </div>
+          <textarea placeholder="Justify in 1–2 sentences…" oninput="setWhy(${r.id},'${s.k}',this.value)">${esc(r.why[s.k])}</textarea>
+        </div>`;
+    });
+    card.innerHTML = `
+      <div class="res-head">
+        <span class="res-num">Resource ${ri+1}</span>
+        <input type="text" placeholder="e.g., Culture of customer obsession · Leadership pipeline · Employer brand" value="${esc(r.name)}" oninput="setName(${r.id},this.value)">
+        <button class="remove" onclick="removeResource(${r.id})">remove</button>
+      </div>
+      <div class="gate">${stepsHtml}</div>
+      <div class="verdict ${v.cls}"><span class="tag">Verdict</span> ${v.text}</div>`;
+    host.appendChild(card);
+  });
+  renderSummary();
+}
+
+function setAns(id,k,val){
+  const r = resources.find(x=>x.id===id);
+  r.ans[k] = (r.ans[k]===val) ? null : val;   // click again to clear
+  renderResources();
+}
+function setWhy(id,k,val){ resources.find(x=>x.id===id).why[k]=val; renderSummary(); }
+function setName(id,val){ resources.find(x=>x.id===id).name=val; renderSummary(); }
+
+function renderSummary(){
+  const keys = STEPS[mode].map(s=>s.k);
+  const brand = document.getElementById('brand').value.trim();
+  let html = `<tr><th>HR resource${brand? ' — '+esc(brand):''}</th>${keys.map(k=>`<th style="width:60px;">${k}</th>`).join('')}<th>Implication</th></tr>`;
+  if(resources.length===0){
+    html += `<tr><td colspan="${keys.length+2}" style="color:var(--muted);">No resources yet — add your first HR resource above.</td></tr>`;
+  }
+  resources.forEach((r,ri)=>{
+    const v = verdict(r);
+    html += `<tr><td>${esc(r.name)||'Resource '+(ri+1)}</td>`;
+    keys.forEach(k=>{
+      const a=r.ans[k];
+      html += `<td>${a==='y'?'<span class="yesno-mini y">Yes</span>':a==='n'?'<span class="yesno-mini n">No</span>':'—'}</td>`;
+    });
+    html += `<td><span class="pill ${v.pill}">${v.short}</span></td></tr>`;
+  });
+  document.getElementById('sumTable').innerHTML = html;
+}
+
+function setMode(m){
+  mode = m;
+  document.getElementById('mVRIO').classList.toggle('active', m==='VRIO');
+  document.getElementById('mVRIN').classList.toggle('active', m==='VRIN');
+  document.getElementById('modeHint').textContent =
+    m==='VRIO' ? 'O = Organized to exploit (Barney 1995)' : 'N = Non-substitutable (Barney 1991)';
+  renderResources();
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+/* start with three resources, matching the handout */
+addResource(); addResource(); addResource();
+</script>
+</body>
+</html>
